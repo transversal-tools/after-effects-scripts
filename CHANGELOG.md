@@ -4,6 +4,7 @@
 
 - The scripts are now published under the Transversal name (script headers, read-me, license holder).
 - New home: github.com/transversal-tools/after-effects-scripts. The old address under pdrmafra stays as it was.
+- The transversal.tools website moved to its own repository; it is no longer part of this one.
 - Shape to Stroke: thin rotated bars read back from After Effects are recognised again (path points are stored as 32-bit floats; the rectangle checks now tolerate that rounding).
 - Depth Map: Depth Sweep and sequence Depth Reveal no longer leave an empty "Solids" folder in the project.
 - Native AE suites (core, Shape to Stroke, Depth Map) run and passed in AE 26.5; see docs/validation.md.
