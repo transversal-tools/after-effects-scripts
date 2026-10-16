@@ -6,7 +6,7 @@ const name=`after-effects-scripts-v${version}`,target=path.join(root,"dist",name
 const git=args=>execFileSync("git",args,{cwd:root,encoding:"utf8"});
 if(git(["status","--porcelain"]).trim() && !process.argv.includes("--allow-dirty"))throw new Error("Commit or stash changes first: the release must match a commit (or pass --allow-dirty for a local trial).");
 
-const repo="https://github.com/pdrmafra/after-effects-scripts/blob/main/";
+const repo="https://github.com/transversal-tools/after-effects-scripts/blob/main/";
 const files=[
   ...["Transform-to-Null","Keyframe-Tools","Font-Inspector"].map(n=>[`scripts/${n}.jsx`,`Scripts/${n}.jsx`]),
   ["experimental/shape-to-stroke/Shape-to-Stroke.jsx","Scripts/Shape-to-Stroke.jsx"],
@@ -16,7 +16,7 @@ const files=[
   ["LICENSE","LICENSE.txt"],["CHANGELOG.md","CHANGELOG.md"]
 ];
 const readme=`After Effects Scripts v${version} — Transversal
-https://github.com/pdrmafra/after-effects-scripts
+https://github.com/transversal-tools/after-effects-scripts
 
 INSTALL
 1. In After Effects choose File > Scripts > Run Script File... and pick a script from the "Scripts" folder.
@@ -47,7 +47,7 @@ Font Inspector      ${repo}docs/font-inspector.md
 Shape to Stroke     ${repo}experimental/shape-to-stroke/README.md
 Depth Map           ${repo}depth-map/README.md
 
-Problems or ideas: https://github.com/pdrmafra/after-effects-scripts/issues
+Problems or ideas: https://github.com/transversal-tools/after-effects-scripts/issues
 MIT License, provided without warranty (see LICENSE.txt). Depth Map models and dependencies keep their own licenses.
 `;
 

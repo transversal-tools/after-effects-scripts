@@ -26,7 +26,7 @@ Free tools from a motion designer's workflow, by **Transversal**.
 
 ## Install
 
-1. Open **[Releases](https://github.com/pdrmafra/after-effects-scripts/releases)**, download the ZIP from the newest release at the top and unzip it.
+1. Open **[Releases](https://github.com/transversal-tools/after-effects-scripts/releases)**, download the ZIP from the newest release at the top and unzip it.
 2. In After Effects choose **File → Scripts → Run Script File…** and pick a script from the `Scripts` folder.
 
 Each file in `Scripts` works on its own; there is nothing else to install. To keep them in the **File → Scripts** menu, copy them into After Effects' Scripts folder and restart AE:
@@ -49,7 +49,7 @@ Depth Map is different: keep its whole `depth-map` folder and double-click its `
 - Font Inspector reports can contain your project's text and layer names. Check a report before sharing it.
 - Depth Map runs entirely on your computer. It generates in the background with a progress bar and a Cancel button; its image files are not removed by Undo.
 
-Found a problem or have an idea? [Open an issue](https://github.com/pdrmafra/after-effects-scripts/issues).
+Found a problem or have an idea? [Open an issue](https://github.com/transversal-tools/after-effects-scripts/issues).
 
 ## License
 
