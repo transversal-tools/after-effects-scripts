@@ -5,7 +5,7 @@ Free tools from a motion designer's workflow, by **Transversal**.
 | Tool | What it does | Guide |
 | --- | --- | --- |
 | **Transform to Null** | Moves a layer's position, scale and rotation animation onto a new parent null, so you can add a second layer of motion on top. | [Guide](docs/transform-to-null.md) |
-| **Keyframe Tools** *(new)* | One compact dockable panel: space, step and thin out keys, move keys to a layer's in or out point, and trim layers to their keys. | [Guide](docs/keyframe-tools.md) |
+| **Keyframe Tools** *(new)* | One compact dockable panel: space, step and thin out keys, move keys to a layer's in or out point or to the playhead, and trim layers to their keys. | [Guide](docs/keyframe-tools.md) |
 | **Font Inspector** | Lists every font used in a comp and its precomps, and jumps to each layer that uses it. | [Guide](docs/font-inspector.md) |
 | **Shape to Stroke** *(experimental)* | Turns filled outline shapes into editable strokes you can animate with Trim Paths. | [Guide](experimental/shape-to-stroke/README.md) |
 | **Depth Map** *(advanced, macOS)* | Generates depth-map images from stills or short comp sequences with local AI models, with optional Depth Reveal, Depth Sweep and Parallax effects. Needs Python 3.12 and a one-click install. | [Setup](depth-map/README.md) |
@@ -16,7 +16,7 @@ Free tools from a motion designer's workflow, by **Transversal**.
 
 [![Shape to Stroke: the outline of a filled shape, the path the script finds through its middle, and the stroke that fills it](docs/media/shape-to-stroke.gif)](experimental/shape-to-stroke/README.md)
 
-**[Keyframe Tools](docs/keyframe-tools.md)** spaces, steps and thins out keys, moves them to a layer's in or out point, and trims layers to their keys, from one compact panel.
+**[Keyframe Tools](docs/keyframe-tools.md)** spaces, steps and thins out keys, moves them to a layer's in or out point or to the playhead, and trims layers to their keys, from one compact panel.
 
 [![Keyframe Tools: each button in turn and its effect on a layer and its Position keys](docs/media/keyframe-tools.gif)](docs/keyframe-tools.md)
 
@@ -45,7 +45,7 @@ Depth Map is different: keep its whole `depth-map` folder and double-click its `
 - **Save your project first.** Each script's changes undo with a single Cmd/Ctrl+Z.
 - The scripts check everything before changing your comp. When something is not supported they stop and explain why instead of guessing.
 - Tested on After Effects 26.5 on macOS. Windows and older versions have not been tested yet.
-- The keyframe tools refuse roving keys, auto-Bezier/continuous keys and properties with expressions rather than change them silently.
+- The keyframe tools refuse roving keys and auto-Bezier/continuous keys rather than change them silently. Properties with expressions are fine: only their keys move.
 - Font Inspector reports can contain your project's text and layer names. Check a report before sharing it.
 - Depth Map runs entirely on your computer. It generates in the background with a progress bar and a Cancel button; its image files are not removed by Undo.
 

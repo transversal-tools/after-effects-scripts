@@ -78,6 +78,26 @@
             choose(p,[2,3]); PedroAE.keysToLayer(c,"out");
             assert(near(p.keyTime(3),5-c.frameDuration) && near(p.keyTime(2),3.5-c.frameDuration) && p.keyValue(3)===30,"out shift wrong");
         });
+        test("keys to playhead align each layer's first selected key on the playhead", function () {
+            var c=fresh(), a=c.layers.addShape(), b=c.layers.addShape(), pa=prop(a,"ADBE Rotate Z"), pb=prop(b,"ADBE Rotate Z");
+            animated(pa,[0,0.5,1],[0,10,20]); animated(pb,[1.5,2],[1,2]);
+            choose(pa,[2,3]); choose(pb,[1,2]); c.time=0.75;
+            PedroAE.keysToLayer(c,"playhead");
+            assert(near(pa.keyTime(1),0) && near(pa.keyTime(2),0.75) && near(pa.keyTime(3),1.25) && pa.keyValue(2)===10,"layer A shift wrong");
+            assert(near(pb.keyTime(1),0.75) && near(pb.keyTime(2),1.25) && pb.keyValue(2)===2,"layer B shift wrong");
+        });
+        test("timing buttons move keys under loopOut / wiggle and leave the expression enabled and error-free", function () {
+            var c=fresh(), layer=c.layers.addShape(), r=prop(layer,"ADBE Rotate Z"), o=prop(layer,"ADBE Opacity");
+            animated(r,[0,0.5,1],[0,90,180]); r.expression="loopOut()";
+            animated(o,[0,1],[100,50]); o.expression="wiggle(2,5)";
+            function intact(p,expr,label){ var v=p.valueAtTime(1.5,false); assert(p.expression===expr && p.expressionEnabled && p.expressionError==="", label+": expression changed, disabled or erroring: "+p.expressionError); }
+            choose(r,[1,2,3]); PedroAE.space(c,6,false,false); intact(r,"loopOut()","space");
+            assert(near(r.keyTime(2)-r.keyTime(1),6*c.frameDuration),"space did not move keys");
+            choose(r,[1,2]); PedroAE.step(c,3,false); intact(r,"loopOut()","step");
+            choose(r,[1,2,3]); PedroAE.keepEvery(c,2); intact(r,"loopOut()","keep");
+            choose(o,[1,2]); c.time=0.25; PedroAE.keysToLayer(c,"playhead"); intact(o,"wiggle(2,5)","keys to playhead");
+            assert(near(o.keyTime(1),0.25),"keys to playhead did not move the wiggle keys");
+        });
         test("keep every 2nd selected key removes the ones between", function () {
             var c=fresh(), layer=c.layers.addShape(), p=prop(layer,"ADBE Rotate Z");
             animated(p,[0,0.25,0.5,0.75,1],[0,1,2,3,4]); choose(p,[1,2,3,4,5]);

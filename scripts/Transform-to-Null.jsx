@@ -164,7 +164,7 @@ var PedroAE = (function () {
                 var layer = p.propertyGroup(p.propertyDepth);
                 if (layer.locked) fail("Unlock layer: " + layer.name);
                 if (!supported(p)) fail("Unsupported property: " + p.name);
-                if (hasExpression(p)) fail("Remove expressions first: " + p.name);
+                // Expressions are allowed: only keys are rewritten; the expression and its enabled state stay as they are.
                 var before = snapshot(p);
                 for (j = 0; j < before.keys.length; j++) {
                     var k = before.keys[j];
@@ -367,8 +367,10 @@ var PedroAE = (function () {
     }
     // Moves each layer's selected keys together, keeping their spacing: the earliest lands on
     // the layer's in point, or the latest on its last visible frame (out point minus one frame).
+    // Moves each layer's selected keys by one offset, keeping their spacing: the first selected key lands on the
+    // layer's in point ("in") or on the playhead ("playhead"), or the last one on the layer's last frame ("out").
     function keysToLayer(c, edge) {
-        if (edge !== "in" && edge !== "out") fail("Edge must be in or out.");
+        if (edge !== "in" && edge !== "out" && edge !== "playhead") fail("Edge must be in, out or playhead.");
         var properties = keyProperties(c, false), groups = [], plans = [], moved = 0, i, j, k;
         for (i = 0; i < properties.length; i++) {
             var p = properties[i], layer = p.propertyGroup(p.propertyDepth), group = null, before = snapshot(p);
@@ -381,7 +383,7 @@ var PedroAE = (function () {
             group.items.push({ property: p, before: before });
         }
         for (i = 0; i < groups.length; i++) {
-            var g = groups[i], shift = edge === "in" ? g.layer.inPoint - g.first : g.layer.outPoint - c.frameDuration - g.last;
+            var g = groups[i], shift = edge === "in" ? g.layer.inPoint - g.first : (edge === "playhead" ? c.time - g.first : g.layer.outPoint - c.frameDuration - g.last);
             if (Math.abs(shift) < EPS) continue;
             for (j = 0; j < g.items.length; j++) {
                 var item = g.items[j], after = { keys: copyKeys(item.before.keys) };
@@ -395,8 +397,8 @@ var PedroAE = (function () {
                 plans.push({ property: item.property, before: item.before, after: after });
             }
         }
-        if (!plans.length) fail("The selected keys already start at each layer's " + (edge === "in" ? "in point." : "last frame."));
-        applyPlans(edge === "in" ? "Keys to Layer In" : "Keys to Layer Out", plans);
+        if (!plans.length) fail(edge === "playhead" ? "The selected keys already start at the playhead." : "The selected keys already start at each layer's " + (edge === "in" ? "in point." : "last frame."));
+        applyPlans(edge === "in" ? "Keys to Layer In" : (edge === "playhead" ? "Keys to Playhead" : "Keys to Layer Out"), plans);
         return moved;
     }
     // Every keyframe on the layer counts, selected or not. Layer markers are not keyframes.

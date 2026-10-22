@@ -38,15 +38,15 @@ var thisObj=hostKind==="panel" ? new Panel() : {};`, c);
     state() { return JSON.parse(JSON.stringify(vm.runInContext(`({buttons:widgets.filter(function(w){return w.type==="iconbutton"&&w.helpTip.indexOf("N:")!==0;}).map(function(w){return w.helpTip.split(":")[0];}),fields:widgets.filter(function(w){return w.type==="edittext";}).map(function(w){return w.text;}),editing:widgets.filter(function(w){return w.type==="edittext";}).map(function(w){return w.visible;}),calls:calls,alerts:alerts,record:record,shown:shown})`, c))); }
   };
 }
-const tips = ["Space", "Step", "Keep", "Keys to layer in", "Keys to layer out", "Trim in", "Trim out", "Trim both"];
-test("the compact panel has an interval field and eight icon buttons in order", () => {
+const tips = ["Space", "Step", "Keep", "Keys to layer in", "Keys to layer out", "Keys to playhead", "Trim in", "Trim out", "Trim both"];
+test("the compact panel has an interval field and nine icon buttons in order", () => {
   const s = run().state();
   assert.deepEqual(s.buttons, tips); assert.deepEqual(s.fields, ["2"]);
 });
 test("each button runs its action with N: frames for Space and Step, keys for Keep", () => {
   const ui = run().frames("4");
   for (const tip of tips) ui.click(tip);
-  assert.deepEqual(ui.state().calls, [["space", "4", false, false], ["step", "4", false], ["keepEvery", "4"], ["keysToLayer", "in"], ["keysToLayer", "out"], ["trimToKeys", "in"], ["trimToKeys", "out"], ["trimToKeys", "both"]]);
+  assert.deepEqual(ui.state().calls, [["space", "4", false, false], ["step", "4", false], ["keepEvery", "4"], ["keysToLayer", "in"], ["keysToLayer", "out"], ["keysToLayer", "playhead"], ["trimToKeys", "in"], ["trimToKeys", "out"], ["trimToKeys", "both"]]);
   assert.equal(ui.state().record, "v2|4"); assert.deepEqual(ui.state().alerts, []);
 });
 test("a refused action alerts and keeps the panel open", () => {
@@ -64,13 +64,20 @@ test("records from earlier versions keep their frame count", () => {
 for (const record of [null, "", "v2|0", "v2|6|1", "v1|6|0|1", "v3|s|0.5", "v3|s|2", "v3|f|1.5", "v2|6\n"]) test(`invalid or seconds record ${JSON.stringify(record)} uses N = 2`, () => {
   assert.deepEqual(run({ saved: record }).state().fields, ["2"]);
 });
-test("the tiles form a column, a 3 x 3 square or a single row, never leaving one alone", () => {
+test("the ten tiles form a column, 2 rows of 5 or a single row, never a tall grid or a row left short", () => {
   const ui = run(), shape = width => { const l = ui.resize(width); return [new Set(l.map(p => p[0])).size, new Set(l.map(p => p[1])).size]; };
-  assert.deepEqual(shape(60), [1, 9]);
-  assert.deepEqual(shape(120), [1, 9], "room for 2 columns still gives a column");
-  assert.deepEqual(shape(170), [3, 3]);
-  assert.deepEqual(shape(400), [3, 3], "room for 7 columns still gives the square");
-  assert.deepEqual(shape(500), [9, 1]);
+  assert.deepEqual(shape(60), [1, 10]);
+  assert.deepEqual(shape(120), [1, 10], "room for 2 columns still gives a column (5 rows of 2 is taller than wide)");
+  assert.deepEqual(shape(230), [1, 10], "room for 4 columns: no full layout yet");
+  assert.deepEqual(shape(280), [5, 2]);
+  assert.deepEqual(shape(500), [5, 2], "room for 9 columns still gives 2 rows of 5");
+  assert.deepEqual(shape(540), [10, 1]);
+});
+test("nine tiles still make the 3 x 3 square", () => {
+  const ctx = vm.createContext({}); vm.runInContext("var widgets=[];function Control(){};var app={settings:{haveSetting:function(){return false;}}};var thisObj={};var PedroAE={};", ctx);
+  vm.runInContext(source.replace("KeyframeTools.start(thisObj);", ""), ctx);
+  const cols = w => new Set(JSON.parse(vm.runInContext(`JSON.stringify(KeyframeTools.flow(9,${w}))`, ctx)).map(p => p[0])).size;
+  assert.equal(cols(120), 1); assert.equal(cols(170), 3); assert.equal(cols(400), 3); assert.equal(cols(480), 9);
 });
 test("N is drawn large as strokes; clicking it shows the text field until Enter or a click elsewhere", () => {
   const ui = run({ saved: "v2|12" });
@@ -83,6 +90,24 @@ test("N is drawn large as strokes; clicking it shows the text field until Enter 
   ui.change(); assert.deepEqual(ui.state().editing, [false]); assert.equal(ui.state().record, "v2|5");
   assert.equal(ui.draw("N:").filter(d => d === "stroke").length, 1 + 1);
   ui.click("N:").deactivate(); assert.deepEqual(ui.state().editing, [false]);
+});
+test("Option-click on N rebuilds the docked panel from its file, in the same panel", () => {
+  const c = vm.createContext({ seed: undefined, kbarArg: undefined, failWith: undefined, hostKind: "panel" });
+  vm.runInContext(`var evaluated=[],hostDuringEval=null;
+    var ScriptUI={environment:{keyboardState:{altKey:false}}};
+    function File(p){this.fsName=p;this.exists=true;}
+    var $={fileName:"/AE/ScriptUI Panels/Keyframe-Tools.jsx",global:{},evalFile:function(f){evaluated.push(f.fsName);hostDuringEval=$.global.KeyframeToolsReloadHost;}};`, c);
+  // Reuse the standard stubs, then load the panel.
+  const base = fs.readFileSync(__filename, "utf8");
+  vm.runInContext(base.slice(base.indexOf("var widgets=[]"), base.indexOf("var thisObj=")).replace(/\\n/g, "\n") + "var thisObj=new Panel();", c);
+  vm.runInContext(source, c);
+  vm.runInContext(`thisObj.remove=function(child){thisObj.children.splice(thisObj.children.indexOf(child),1);};
+    widgets.forEach(function(w){if(w!==thisObj&&w.type!=="window")thisObj.children.push(w);});`, c);
+  const number = `widgets.filter(function(w){return w.helpTip&&w.helpTip.indexOf("N:")===0&&w.type==="iconbutton";})[0]`;
+  vm.runInContext(`${number}.onClick();`, c);   // plain click: edits, no reload
+  assert.equal(vm.runInContext("evaluated.length", c), 0);
+  vm.runInContext(`ScriptUI.environment.keyboardState.altKey=true;${number}.onClick();`, c);
+  assert.deepEqual(JSON.parse(vm.runInContext("JSON.stringify([evaluated,thisObj.children.length,hostDuringEval===thisObj,$.global.KeyframeToolsReloadHost])", c)), [["/AE/ScriptUI Panels/Keyframe-Tools.jsx"], 0, true, null]);
 });
 test("long or odd N values still draw inside the tile", () => {
   const ui = run();

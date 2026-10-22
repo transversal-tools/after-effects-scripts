@@ -33,8 +33,9 @@ for (const invalid of ["2abc","0","-1","1.5","NaN","Infinity",""]) test(`reject 
 for (const flag of ["roving","auto","continuous"]) test(`timing preflight rejects ${flag}`,()=>{
   assert.throws(()=>evaluate(`var p=makeProperty([1,3],[10,30],[1,2],true); p.keys[0].${flag}=true; PedroAE.space(fixture([p]),2,false,false);`),/Disable/);
 });
-test("disabled expressions are rejected too",()=>{
-  assert.throws(()=>evaluate(`var p=makeProperty([1,3],[10,30],[1,2]); p.expression="value"; PedroAE.space(fixture([p]),2,false,false);`),/expressions/);
+test("properties with expressions (loopOut, wiggle) keep their expression while their keys move",()=>{
+  const r=evaluate(`var p=makeProperty([1,3],[10,30],[1,2]); p.expression="loopOut()"; p.canSetExpression=true; PedroAE.space(fixture([p]),2,false,false); [p.expression,p.keys.map(function(k){return k.time;})];`);
+  assert.equal(r[0],"loopOut()"); assert.ok(Math.abs(r[1][1]-r[1][0]-2/24)<1e-9);
 });
 test("step supports 3 selected keys without index drift and pre-samples the original",()=>{
   const result=evaluate(`var p=makeProperty([0,1,2],[0,1,4],[1,2,3]); PedroAE.step(fixture([p]),12,false); [p.keys.map(function(k){return [k.time,k.value];}),p.sampleCounts,app.groups];`);

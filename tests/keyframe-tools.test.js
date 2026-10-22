@@ -37,6 +37,19 @@ test("a moved key landing on an unselected key cancels everything", () => {
 test("keys already at the in point are reported, not rewritten", () => {
   assert.throws(() => evaluate(`var p=makeProperty([2,3],[1,2],[1,2]);p.propertyGroup().inPoint=2;PedroAE.keysToLayer(fixture([p]),"in");`), /already start/);
 });
+test("keys to playhead align each layer's first selected key on the playhead, keeping spacing", () => {
+  // Two layers whose selected keys start at different times; playhead at 3 s.
+  const r = evaluate(`var a=makeProperty([0,1,2],[0,10,20],[2,3]),b=makeProperty([4,4.5],[1,2],[1,2]);var c=fixture([a,b]);c.time=3;
+    var n=PedroAE.keysToLayer(c,"playhead");[n,a.keys.map(function(k){return [k.time,k.value,k.selected];}),b.keys.map(function(k){return k.time;}),app.groups];`);
+  assert.deepEqual(r, [4, [[0, 0, false], [3, 10, true], [4, 20, true]], [3, 3.5], 0]);
+});
+test("keys to playhead: properties on one layer share the offset; already aligned keys are reported", () => {
+  const r = evaluate(`var a=makeProperty([1,2],[1,2],[1,2]),b=makeProperty([1.5],[5],[1]);b.propertyGroup=a.propertyGroup;var c=fixture([a,b]);c.time=0.5;PedroAE.keysToLayer(c,"playhead");[a.keys.map(function(k){return k.time;}),b.keys.map(function(k){return k.time;})];`);
+  assert.deepEqual(r, [[0.5, 1.5], [1]]);
+  assert.throws(() => evaluate(`var p=makeProperty([2,3],[1,2],[1,2]);var c=fixture([p]);c.time=2;PedroAE.keysToLayer(c,"playhead");`), /already start at the playhead/);
+  const blocked = evaluate(`var p=makeProperty([1,3],[1,2],[2]);var c=fixture([p]);c.time=1;var e="";try{PedroAE.keysToLayer(c,"playhead");}catch(x){e=x.message;}[e.indexOf("land on another key")>=0,p.keys.map(function(k){return k.time;})];`);
+  assert.deepEqual(blocked, [true, [1, 3]]);
+});
 test("trim both starts on the first key, ends after the last key's frame and ignores markers", () => {
   const r = evaluate(`var l=trimLayer("A",0,10,[1,3],[9]);var res=PedroAE.trimToKeys(trimComp([l]),"both");[res,l.inPoint,l.outPoint];`);
   assert.deepEqual(r[0], { layers: 1, noKeys: 0 }); near(r[1], 1); near(r[2], 3 + 1 / 24);

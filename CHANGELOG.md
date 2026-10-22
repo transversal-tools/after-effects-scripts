@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keyframe Tools: the timing buttons now work on properties with expressions (`loopOut()`, `wiggle()`…); only the keys move and the expression is left as it was. Transform to Null still refuses layers with expressions.
+- Keyframe Tools: Option-click the N tile to reload the panel from its file without restarting After Effects.
+- Keyframe Tools: new **Keys to playhead** button (KBar argument `keys-playhead`): each layer's selected keys move together so the first one lands on the playhead, keeping their spacing. With ten tiles, the wide panel shows two rows of five.
 - The scripts are now published under the Transversal name (script headers, read-me, license holder).
 - New home: github.com/transversal-tools/after-effects-scripts. The old address under pdrmafra stays as it was.
 - The transversal.tools website moved to its own repository; it is no longer part of this one.

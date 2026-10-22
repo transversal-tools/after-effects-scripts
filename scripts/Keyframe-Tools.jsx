@@ -164,7 +164,7 @@ var PedroAE = (function () {
                 var layer = p.propertyGroup(p.propertyDepth);
                 if (layer.locked) fail("Unlock layer: " + layer.name);
                 if (!supported(p)) fail("Unsupported property: " + p.name);
-                if (hasExpression(p)) fail("Remove expressions first: " + p.name);
+                // Expressions are allowed: only keys are rewritten; the expression and its enabled state stay as they are.
                 var before = snapshot(p);
                 for (j = 0; j < before.keys.length; j++) {
                     var k = before.keys[j];
@@ -367,8 +367,10 @@ var PedroAE = (function () {
     }
     // Moves each layer's selected keys together, keeping their spacing: the earliest lands on
     // the layer's in point, or the latest on its last visible frame (out point minus one frame).
+    // Moves each layer's selected keys by one offset, keeping their spacing: the first selected key lands on the
+    // layer's in point ("in") or on the playhead ("playhead"), or the last one on the layer's last frame ("out").
     function keysToLayer(c, edge) {
-        if (edge !== "in" && edge !== "out") fail("Edge must be in or out.");
+        if (edge !== "in" && edge !== "out" && edge !== "playhead") fail("Edge must be in, out or playhead.");
         var properties = keyProperties(c, false), groups = [], plans = [], moved = 0, i, j, k;
         for (i = 0; i < properties.length; i++) {
             var p = properties[i], layer = p.propertyGroup(p.propertyDepth), group = null, before = snapshot(p);
@@ -381,7 +383,7 @@ var PedroAE = (function () {
             group.items.push({ property: p, before: before });
         }
         for (i = 0; i < groups.length; i++) {
-            var g = groups[i], shift = edge === "in" ? g.layer.inPoint - g.first : g.layer.outPoint - c.frameDuration - g.last;
+            var g = groups[i], shift = edge === "in" ? g.layer.inPoint - g.first : (edge === "playhead" ? c.time - g.first : g.layer.outPoint - c.frameDuration - g.last);
             if (Math.abs(shift) < EPS) continue;
             for (j = 0; j < g.items.length; j++) {
                 var item = g.items[j], after = { keys: copyKeys(item.before.keys) };
@@ -395,8 +397,8 @@ var PedroAE = (function () {
                 plans.push({ property: item.property, before: item.before, after: after });
             }
         }
-        if (!plans.length) fail("The selected keys already start at each layer's " + (edge === "in" ? "in point." : "last frame."));
-        applyPlans(edge === "in" ? "Keys to Layer In" : "Keys to Layer Out", plans);
+        if (!plans.length) fail(edge === "playhead" ? "The selected keys already start at the playhead." : "The selected keys already start at each layer's " + (edge === "in" ? "in point." : "last frame."));
+        applyPlans(edge === "in" ? "Keys to Layer In" : (edge === "playhead" ? "Keys to Playhead" : "Keys to Layer Out"), plans);
         return moved;
     }
     // Every keyframe on the layer counts, selected or not. Layer markers are not keyframes.
@@ -560,6 +562,8 @@ var PedroAE = (function () {
 // Dockable panel (ScriptUI Panels folder) or floating window (Run Script File).
 // A KBar button can run one action directly by passing its name as the button argument.
 var KeyframeTools = (function () {
+    // The file this panel was loaded from, for Option-click reload.
+    var SCRIPT_FILE = typeof $ !== "undefined" && $.fileName && typeof File !== "undefined" ? new File($.fileName) : null;
     var SECTION = "PedroMafra.KeyframeTools", KEY = "options_v1";
     // One whole number N: frames for Space and Step, keys for Keep.
     function decode(value) {
@@ -583,12 +587,13 @@ var KeyframeTools = (function () {
         "keep": function (c, o) { PedroAE.keepEvery(c, o.amount); },
         "keys-in": function (c) { PedroAE.keysToLayer(c, "in"); },
         "keys-out": function (c) { PedroAE.keysToLayer(c, "out"); },
+        "keys-playhead": function (c) { PedroAE.keysToLayer(c, "playhead"); },
         "trim-in": function (c) { PedroAE.trimToKeys(c, "in"); },
         "trim-out": function (c) { PedroAE.trimToKeys(c, "out"); },
         "trim-both": function (c) { PedroAE.trimToKeys(c, "both"); }
     };
     function perform(name, options) {
-        if (!actions.hasOwnProperty(name)) throw new Error("Unknown action: " + name + ". Use space, step, keep, keys-in, keys-out, trim-in, trim-out or trim-both.");
+        if (!actions.hasOwnProperty(name)) throw new Error("Unknown action: " + name + ". Use space, step, keep, keys-in, keys-out, keys-playhead, trim-in, trim-out or trim-both.");
         actions[name](PedroAE.comp(), options);
     }
 
@@ -601,6 +606,8 @@ var KeyframeTools = (function () {
         "keep": [["key", 10, 30, 9, true], ["key", 30, 30, 5, true, "dim"], ["key", 50, 30, 9, true], ["key", 70, 30, 5, true, "dim"], ["key", 90, 30, 9, true]],
         "keys-in": [["bar", 5, 10, 90, 10, "icon"], ["key", 15, 40, 10, true], ["key", 45, 40, 10, true]],
         "keys-out": [["bar", 5, 10, 90, 10, "icon"], ["key", 55, 40, 10, true], ["key", 85, 40, 10, true]],
+        // Playhead (light line with its head); hollow staggered keys before, filled keys aligned on it after.
+        "keys-playhead": [["bar", 54, 2, 12, 7, "cut"], ["line", 60, 2, 60, 58, 3, "cut"], ["key", 14, 20, 8, false, "dim"], ["key", 32, 44, 8, false, "dim"], ["key", 60, 20, 9, true], ["key", 60, 44, 9, true]],
         "trim-in": [["bar", 5, 10, 20, 10, "dim"], ["bar", 25, 10, 70, 10, "icon"], ["line", 25, 3, 25, 57, 3, "cut"], ["key", 25, 40, 10, true], ["key", 60, 40, 10, true]],
         "trim-out": [["bar", 5, 10, 70, 10, "icon"], ["bar", 75, 10, 20, 10, "dim"], ["line", 75, 3, 75, 57, 3, "cut"], ["key", 40, 40, 10, true], ["key", 75, 40, 10, true]],
         "trim-both": [["bar", 5, 10, 12, 10, "dim"], ["bar", 17, 10, 66, 10, "icon"], ["bar", 83, 10, 12, 10, "dim"], ["line", 17, 3, 17, 57, 3, "cut"], ["line", 83, 3, 83, 57, 3, "cut"], ["key", 17, 40, 10, true], ["key", 83, 40, 10, true]]
@@ -612,6 +619,7 @@ var KeyframeTools = (function () {
         "keep": "Keep: keeps every Nth selected key and removes the ones between (the first and last stay)",
         "keys-in": "Keys to layer in: moves the selected keys so the first one sits on the layer's in point",
         "keys-out": "Keys to layer out: moves the selected keys so the last one sits on the layer's last frame",
+        "keys-playhead": "Keys to playhead: moves each layer's selected keys so the first one sits on the playhead",
         "trim-in": "Trim in: the layer starts on its first keyframe",
         "trim-out": "Trim out: the layer ends after its last keyframe",
         "trim-both": "Trim both: the layer spans from its first to its last keyframe"
@@ -677,10 +685,11 @@ var KeyframeTools = (function () {
     }
     var BUTTON = [48, 28], GAP = 4, MARGIN = 8;
     // Lays out equal tiles in the most columns that fit, but only in counts that fill every row:
-    // 9 tiles become a column, a 3 x 3 square or a single row, never a row with one tile left over.
+    // Grids are never taller than wide (except a single column): 9 tiles become a column, a 3 x 3 square or a row;
+    // 10 tiles a column, 2 rows of 5 or a row. Every row is full.
     function flow(count, width) {
         var fit = Math.max(1, Math.floor((width + GAP) / (BUTTON[0] + GAP))), columns = 1, places = [], c, i;
-        for (c = 1; c <= count; c++) if (count % c === 0 && c <= fit) columns = c;
+        for (c = 1; c <= count; c++) if (count % c === 0 && c <= fit && (c === 1 || c * c >= count)) columns = c;
         var left = Math.max(0, (width - (columns * BUTTON[0] + (columns - 1) * GAP)) / 2);
         for (i = 0; i < count; i++) places.push([left + (i % columns) * (BUTTON[0] + GAP), Math.floor(i / columns) * (BUTTON[1] + GAP)]);
         return places;
@@ -694,11 +703,12 @@ var KeyframeTools = (function () {
         var number = win.add("iconbutton", undefined, undefined, { style: "toolbutton" });
         var amount = win.add("edittext", undefined, readOptions().amount);
         number.preferredSize = amount.preferredSize = BUTTON; amount.justify = "center";
-        number.helpTip = amount.helpTip = "N: frames for Space and Step, keys for Keep. Click to change.";
+        number.helpTip = amount.helpTip = "N: frames for Space and Step, keys for Keep. Click to change. Option-click reloads the panel.";
         amount.visible = false;
         function options() { return { amount: amount.text }; }
         number.onDraw = function (state) { drawNumber(this, amount.text, state); };
         number.onClick = function () {
+            if (typeof ScriptUI !== "undefined" && ScriptUI.environment && ScriptUI.environment.keyboardState.altKey) { reload(win); return; }
             amount.location = number.location; amount.size = number.size;
             number.visible = false; amount.visible = true; amount.active = true;
         };
@@ -709,7 +719,7 @@ var KeyframeTools = (function () {
         amount.onChange = function () { saveOptions(options()); finishEditing(); };
         amount.onDeactivate = finishEditing;
 
-        var order = ["space", "step", "keep", "keys-in", "keys-out", "trim-in", "trim-out", "trim-both"], controls = [number];
+        var order = ["space", "step", "keep", "keys-in", "keys-out", "keys-playhead", "trim-in", "trim-out", "trim-both"], controls = [number];
         for (var i = 0; i < order.length; i++) (function (name) {
             var button = win.add("iconbutton", undefined, undefined, { style: "toolbutton" });
             button.preferredSize = BUTTON;
@@ -739,7 +749,23 @@ var KeyframeTools = (function () {
         if (win instanceof Window) { win.center(); win.show(); }
         return win;
     }
+    // Option-click on N: reads this file again and rebuilds the panel in place, so an updated panel shows without
+    // restarting After Effects. A docked panel keeps its spot; a floating window closes and reopens.
+    function reload(win) {
+        if (!SCRIPT_FILE || !SCRIPT_FILE.exists) { alert("Cannot find the panel file to reload. Restart After Effects instead.", "Keyframe Tools"); return; }
+        if (win instanceof Panel) {
+            while (win.children.length) win.remove(win.children[0]);
+            $.global.KeyframeToolsReloadHost = win;
+        } else {
+            win.close();
+        }
+        try { $.evalFile(SCRIPT_FILE); }
+        catch (error) { alert("Reload failed: " + error.toString() + "\nRestart After Effects to load the panel.", "Keyframe Tools"); }
+        finally { $.global.KeyframeToolsReloadHost = null; }
+    }
     function start(host) {
+        // During a reload the new code builds into the existing docked panel instead of a new window.
+        if (typeof $ !== "undefined" && $.global && $.global.KeyframeToolsReloadHost) host = $.global.KeyframeToolsReloadHost;
         var argument = kbarArgument();
         if (argument) { PedroAE.run("Keyframe Tools", function () { perform(argument, readOptions()); }); return null; }
         return buildPanel(host);
